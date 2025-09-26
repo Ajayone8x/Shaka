@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Shaka Player for M3U8</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shaka-player@latest/dist/controls.css">
+    
+    <script defer src="https://cdn.jsdelivr.net/npm/shaka-player@latest/dist/shaka-player.ui.js"></script>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        #player-container {
+            width: 90%;
+            max-width: 800px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        }
+        /* The video element needs to be a direct child of the container for the UI to work correctly */
+        video {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="player-container">
+        <video id="player" controls autoplay poster="https://shaka-player-demo.appspot.com/assets/poster.jpg"></video>
+    </div>
+
+    <script>
+        // The M3U8 URL you want to play
+        // I'm using a public test stream. Replace this with your own M3U8 link.
+        const manifestUri = 'https://bcovlive-a.akamaihd.net/f5fec2a70fa64f86a1bc3ee42e94e355/ap-southeast-2/5833133821001/playlist.m3u8';
+
+        async function initPlayer() {
+            const video = document.getElementById('player');
+            const player = new shaka.Player(video);
+
+            // Attach the Shaka UI controls
+            const ui = new shaka.ui.Overlay(player, document.getElementById('player-container'), video);
+            ui.getControls(); // This builds the controls
+
+            // Listen for error events.
+            player.addEventListener('error', onErrorEvent);
+
+            try {
+                // Load the M3U8 manifest.
+                await player.load(manifestUri);
+                console.log('The video has been loaded successfully!');
+            } catch (e) {
+                // onError is called if the license server or manifest fails.
+                onError(e);
+            }
+        }
+
+        function onErrorEvent(event) {
+            // Extract the shaka.util.Error object from the event.
+            onError(event.detail);
+        }
+
+        function onError(error) {
+            // Log the error.
+            console.error('Shaka Player Error:', error.code, 'Object', error);
+        }
+
+        // Wait for the page to be fully loaded to initialize the player
+        document.addEventListener('DOMContentLoaded', initPlayer);
+    </script>
+
+</body>
+</html>
