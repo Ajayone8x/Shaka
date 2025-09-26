@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Shaka Player for M3U8</title>
+    <title>Plyr Player for M3U8</title>
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shaka-player@latest/dist/controls.css">
-    
-    <script defer src="https://cdn.jsdelivr.net/npm/shaka-player@latest/dist/shaka-player.ui.js"></script>
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
 
     <style>
         body {
@@ -19,63 +17,61 @@
             align-items: center;
             height: 100vh;
             margin: 0;
+            overflow: hidden;
         }
-        #player-container {
+        .container {
             width: 90%;
             max-width: 800px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
         }
-        /* The video element needs to be a direct child of the container for the UI to work correctly */
-        video {
-            width: 100%;
+        /* Plyr's main color theme */
+        :root {
+            --plyr-color-main: #1778f2;
         }
     </style>
 </head>
 <body>
-
-    <div id="player-container">
-        <video id="player" controls autoplay poster="https://shaka-player-demo.appspot.com/assets/poster.jpg"></video>
+    <div class="container">
+        <video id="player" playsinline controls></video>
     </div>
 
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
     <script>
-        // The M3U8 URL you want to play
-        // I'm using a public test stream. Replace this with your own M3U8 link.
-        const manifestUri = 'https://bcovlive-a.akamaihd.net/f5fec2a70fa64f86a1bc3ee42e94e355/ap-southeast-2/5833133821001/playlist.m3u8';
-
-        async function initPlayer() {
+        document.addEventListener('DOMContentLoaded', () => {
+            const source = 'https://bcovlive-a.akamaihd.net/f5fec2a70fa64f86a1bc3ee42e94e355/ap-southeast-2/5833133821001/playlist.m3u8';
             const video = document.getElementById('player');
-            const player = new shaka.Player(video);
 
-            // Attach the Shaka UI controls
-            const ui = new shaka.ui.Overlay(player, document.getElementById('player-container'), video);
-            ui.getControls(); // This builds the controls
+            // Initialize Plyr player with some options
+            const player = new Plyr(video, {
+                title: 'Live Stream',
+                controls: [
+                    'play-large', 'play', 'progress', 'current-time', 'mute', 
+                    'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'
+                ],
+            });
 
-            // Listen for error events.
-            player.addEventListener('error', onErrorEvent);
+            if (Hls.isSupported()) {
+                // HLS.js is supported
+                const hls = new Hls();
+                hls.loadSource(source);
+                hls.attachMedia(video);
+                
+                // Expose hls object for Plyr to use
+                window.hls = hls;
 
-            try {
-                // Load the M3U8 manifest.
-                await player.load(manifestUri);
-                console.log('The video has been loaded successfully!');
-            } catch (e) {
-                // onError is called if the license server or manifest fails.
-                onError(e);
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // Native HLS support (e.g., Safari)
+                video.src = source;
+            } else {
+                // HLS is not supported
+                console.error("HLS is not supported in this browser.");
+                // You could display an error message to the user here.
             }
-        }
-
-        function onErrorEvent(event) {
-            // Extract the shaka.util.Error object from the event.
-            onError(event.detail);
-        }
-
-        function onError(error) {
-            // Log the error.
-            console.error('Shaka Player Error:', error.code, 'Object', error);
-        }
-
-        // Wait for the page to be fully loaded to initialize the player
-        document.addEventListener('DOMContentLoaded', initPlayer);
+        });
     </script>
-
 </body>
 </html>
+
